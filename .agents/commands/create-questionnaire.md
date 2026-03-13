@@ -4,8 +4,8 @@ description: Create a v1 questionnaire from questions or input document followin
 ---
 
 Create a v1 questionnaire using the v1 schema:
-- Schema: data/questions/v1/schema-questionnaire-v1.json
-- README: data/questions/v1/README.md
+- Schema: questionnaires/schema-questionnaire-v1.json
+- README: questionnaires/README.md
 
 ## Input Options
 
@@ -21,14 +21,4 @@ You can create a questionnaire from:
 - Use `|` after `hidden_instructions:` to allow multi-line hidden instructions while preserving `\n` characters
 - Keep contents visible in the prompt rather than moving them into hidden_instructions
 - Only add hidden_instructions if there are points of confusion
-- Reference other questionnaires in data/questions/v1 for examples
-
-## Metadata Format
-
-Ensure you use the right versioning information and customer name:
-
-```yaml
-metadata:
-  title: Technical Privacy Review (Lumin Digital, v1.0)
-  description: A basic privacy technical review used for Lumin Digital - v1.0.0
-``` 
+- Reference questionnaires/stride-tm.yaml as an example
