@@ -1,0 +1,319 @@
+metadata:
+  title: STRIDE-based Threat Analysis
+  description: A simple threat model used to demo Clearly AI
+  general_instructions: >-
+    <Goal>
+      Your goal is to identify any technical threats to the system, or gaps in the system's security. 
+      Be sure to highlight what the concerns are, what information is not documented, and identify the specific solution or recommendation to address the issue.
+      You should relay highly technical details, including configuration settings, code, and infrastructure-as-code.
+    </Goal>
+
+    <Additional Information>
+      You should search the organization's knowledge base for specific information about how this organization recommends remediating threats and for the organization-specific security controls available.
+      For example, if the system requires human authentication, you should search the knowledge base for information about how this organization recommends performing authentication.  If the organization requires MFA, you should search the knowledge base for information about how this organization recommends performing MFA.
+      In the above example, an organization may recommend using a specific authentication library, or a specific MFA provider (e.g., Okta with Yubikey). Be as specific as possible when providing remediation instructions, and cite the knowledge base filename and section where possible.
+    </Additional Information>
+
+blocks:
+- text: "## System Overview"
+- prompt: Include or describe an Architecture Diagram for the system.
+  hidden_instructions: |
+    # Architecture Diagram Instructions
+
+    ## Goal
+    Create an architectural diagram to illustrate the components, connections, and layers of the system under review.
+
+    ## Instructions
+
+    ### Collect Information
+    - Review the project documents to identify all major components. Components are discrete architectural elements (services, databases, networks, queues, storage systems, caches, external APIs, etc.). Do not list endpoints, methods, or configuration details.
+    - Create a Markdown table with columns for Component, Purpose, and Type.
+    - Filter out non-architectural details (marketing fluff, team dynamics) unless they strictly define boundaries.
+    - Structure the information hierarchically in the order of Clients -> Network -> Compute -> App -> Data -> Dependencies.
+
+    ### Draw Diagram
+    - Diagram type: Mermaid.js graph/flowchart syntax.
+    - Nodes: components like clients, users, load balancers, services, distributed queues and caches, background workers, databases, monitoring, external APIs, dependencies, etc.
+    - Edges: connections between components and/or subgraphs. Label edges with the connection purpose, type, and data being transferred. Avoid edges that bypass intermediate layers unless explicitly described in the project documents.
+    - Subgraphs: nested architectural layers, such as VPCs, compute environments, networks, etc. For example:
+      - Outer: major trust boundaries, availability zones, networking zones, VPCs, subnets, on-prem, ingress zones, etc.
+      - Middle: execution environments, compute groups, EC2 ASGs, Fargate, Kubernetes namespaces, Lambda, bare metal, containers, etc.
+      - Inner: application nodes
+    - Subgraph titles must be proper names or else concise nouns.
+    - Complex systems may require additional nested subgraph layers.
+    - Collapse components into a single node only when they share the same functional purpose; otherwise, create separate nodes. Label each collapsed node with the list of components it contains. For example: Codebase Integrations (GitHub, GitLab, Azure DevOps) form one node, and LLM API Providers (Anthropic, OpenAI, Google Vertex) form another.
+    - Do NOT put external dependencies in the same subgraph as external clients.
+    - Do NOT label subgraphs with conceptual abstractions (e.g. "Compute Layer", "Business Logic", "External Dependencies") unless that is how they are described in the project documents.
+    - Do not add a legend to the diagram.
+
+    ### Layout Guidelines
+    - Use `direction TB` generally.
+    - Use `direction LR` sparingly, and only inside small subgraphs with at most 2 nodes to avoid making the overall diagram too wide.
+    - Order the graph by the flow of data, following the tiers above.
+
+    ### Unsupported Mermaid Features
+    - AVOID SPECIAL CHARACTERS.
+    - AVOID `%%{...}%%` DIRECTIVES.
+    - AVOID `C4Context` DIAGRAMS.
+
+    ### Style
+    - Use `classDef`, `class`, `style` directives to distinguish types of nodes and subgraphs.
+    - Use `linkStyle` directives to distinguish different types of edges.
+    - Use consistent colors for similar node types (e.g., all compute nodes share one color class, all databases share another).
+    - Style subgraph backgrounds light grays or blues.
+    
+
+- text: "## STRIDE Threat Analysis"
+
+- text: "### Spoofing"
+
+- prompt: Identify, assess, and propose mitigations for Spoofing threats.
+  hidden_instructions: >-
+    Analyze potential Spoofing threats where an attacker impersonates something or someone else in the system.
+    
+    Consider these key areas:
+    - User/entity authentication mechanisms
+    - Service-to-service communication
+    - API endpoints and access tokens
+    - Session management
+    - Domain and email spoofing risks
+    
+    For each identified threat:
+    1. Describe the specific attack vector and targeted assets
+    2. Evaluate business impact (data breach, service compromise, reputation damage) and likelihood (ease of compromise)
+    3. Assess impact, likelihood, and severity using these criteria:
+       - High: Easy to exploit + severe business impact
+       - Medium: Limited exploit paths OR moderate impact
+       - Low: Difficult to exploit + minimal impact
+    4. Document existing security controls
+    5. Assess residual risk after existing mitigations / security controls are applied
+    6. Propose additional specific, actionable remediations to reduce residual risk
+    
+    Present findings in a markdown table with columns:
+    | Threat | Impact | Likelihood | Severity | Existing Mitigations | Residual Risk | Proposed Remediations |
+    
+    Impact, Likelihood, Severity, and Residual Risk use values: High, Medium, or Low.
+    
+    Table formatting requirements:
+    - Use plain text in all cells - NO bullet points, line breaks, or markdown formatting within a cell
+    - Separate multiple items with semicolons
+    - Keep each cell concise and focused
+    
+    For Proposed Remediations:
+    - Write "N/A" if fully mitigated
+    - For partial mitigations, use semicolons to separate remaining steps
+    - For unmitigated threats, separate multiple steps with semicolons
+    
+    Example row:
+    | User impersonation via stolen session tokens | High | Low | High | Session timeouts; IP tracking | Medium | Implement device fingerprinting; add MFA for sensitive actions |
+
+- text: "### Tampering"
+
+- prompt: Identify, assess, and propose mitigations for Tampering threats.
+  hidden_instructions: >-
+    Analyze potential Tampering threats where an attacker modifies data or code in the system.
+    
+    Consider these key areas:
+    - Data integrity in transit and at rest
+    - Code and configuration files
+    - API request/response tampering
+    - Database modifications
+    - Client-side validation bypass
+    
+    For each identified threat:
+    1. Describe the specific attack vector and targeted assets
+    2. Evaluate business impact (data corruption, system compromise, service integrity) and likelihood (ease of compromise)
+    3. Assess impact, likelihood, and severity using these criteria:
+       - High: Easy to modify + critical data/systems affected
+       - Medium: Limited modification access OR moderate impact
+       - Low: Strong integrity controls + minimal impact
+    4. Document existing security controls
+    5. Assess residual risk after existing mitigations / security controls are applied
+    6. Propose additional specific, actionable remediations to reduce residual risk
+    
+    Present findings in a markdown table with columns:
+    | Threat | Impact | Likelihood | Severity | Existing Mitigations | Residual Risk | Proposed Remediations |
+    
+    Impact, Likelihood, Severity, and Residual Risk use values: High, Medium, or Low.
+    
+    Table formatting requirements:
+    - Use plain text in all cells - NO bullet points, line breaks, or markdown formatting within a cell
+    - Separate multiple items with semicolons
+    - Keep each cell concise and focused
+    
+    For Proposed Remediations:
+    - Write "N/A" if fully mitigated
+    - For partial mitigations, use semicolons to separate remaining steps
+    - For unmitigated threats, separate multiple steps with semicolons
+    
+    Example row:
+    | API parameter tampering | High | Medium | High | Input validation; Request signing | Medium | Implement API versioning; add integrity checks for all parameters |
+
+- text: "### Repudiation"
+
+- prompt: Identify, assess, and propose mitigations for Repudiation threats.
+  hidden_instructions: >-
+    Analyze potential Repudiation threats where users can deny performing an action due to insufficient logging or tracking.
+    
+    Consider these key areas:
+    - Audit logging mechanisms
+    - User action tracking
+    - Transaction records
+    - Digital signatures
+    - Non-repudiation controls
+    
+    For each identified threat:
+    1. Describe the specific action that could be denied and affected systems
+    2. Evaluate business impact (legal implications, accountability loss, audit failures) and likelihood (ease of compromise)
+    3. Assess impact, likelihood, and severity using these criteria:
+       - High: No tracking + legal/compliance requirements
+       - Medium: Partial logging OR moderate compliance impact
+       - Low: Strong audit trails + minimal compliance needs
+    4. Document existing security controls
+    5. Assess residual risk after existing mitigations / security controls are applied
+    6. Propose additional specific, actionable remediations to reduce residual risk
+    
+    Present findings in a markdown table with columns:
+    | Threat | Impact | Likelihood | Severity | Existing Mitigations | Residual Risk | Proposed Remediations |
+    
+    Impact, Likelihood, Severity, and Residual Risk use values: High, Medium, or Low.
+    
+    Table formatting requirements:
+    - Use plain text in all cells - NO bullet points, line breaks, or markdown formatting within a cell
+    - Separate multiple items with semicolons
+    - Keep each cell concise and focused
+    
+    For Proposed Remediations:
+    - Write "N/A" if fully mitigated
+    - For partial mitigations, use semicolons to separate remaining steps
+    - For unmitigated threats, separate multiple steps with semicolons
+    
+    Example row:
+    | Denial of critical system changes | High | Medium | High | Basic system logs | Medium | Implement centralized logging; add digital signatures for critical actions |
+
+- text: "### Information Disclosure"
+
+- prompt: Identify, assess, and propose mitigations for Information Disclosure threats.
+  hidden_instructions: >-
+    Analyze potential Information Disclosure threats where sensitive data is exposed to unauthorized parties.
+    
+    Consider these key areas:
+    - Data storage and transmission
+    - Error handling and logging
+    - API responses and documentation
+    - Access control mechanisms
+    - Metadata exposure
+    
+    For each identified threat:
+    1. Describe the specific data that could be exposed and exposure points
+    2. Evaluate business impact (privacy violations, competitive advantage loss, compliance breaches) and likelihood (ease of compromise)
+    3. Assess impact, likelihood, and severity using these criteria:
+       - High: Sensitive data exposure + broad access
+       - Medium: Limited data exposure OR restricted access
+       - Low: Non-sensitive data + minimal exposure
+    4. Document existing security controls
+    5. Assess residual risk after existing mitigations / security controls are applied
+    6. Propose additional specific, actionable remediations to reduce residual risk
+    
+    Present findings in a markdown table with columns:
+    | Threat | Impact | Likelihood | Severity | Existing Mitigations | Residual Risk | Proposed Remediations |
+    
+    Impact, Likelihood, Severity, and Residual Risk use values: High, Medium, or Low.
+    
+    Table formatting requirements:
+    - Use plain text in all cells - NO bullet points, line breaks, or markdown formatting within a cell
+    - Separate multiple items with semicolons
+    - Keep each cell concise and focused
+    
+    For Proposed Remediations:
+    - Write "N/A" if fully mitigated
+    - For partial mitigations, use semicolons to separate remaining steps
+    - For unmitigated threats, separate multiple steps with semicolons
+    
+    Example row:
+    | Verbose error messages exposing system details | Medium | High | Medium | Generic error pages | Low | Implement custom error handling; sanitize error logs; create error code mapping |
+
+- text: "### Denial of Service"
+
+- prompt: Identify, assess, and propose mitigations for Denial of Service threats.
+  hidden_instructions: >-
+    Analyze potential Denial of Service threats where system availability or functionality is disrupted.
+    
+    Consider these key areas:
+    - Resource consumption
+    - Network bandwidth
+    - API rate limiting
+    - Database connections
+    - Processing bottlenecks
+    
+    For each identified threat:
+    1. Describe the specific attack vector and affected services
+    2. Evaluate business impact (service downtime, user experience, revenue loss) and likelihood (ease of compromise)
+    3. Assess impact, likelihood, and severity using these criteria:
+       - High: Easy to disrupt + critical service impact
+       - Medium: Limited disruption potential OR non-critical services
+       - Low: Strong protections + minimal service impact
+    4. Document existing security controls
+    5. Assess residual risk after existing mitigations / security controls are applied
+    6. Propose additional specific, actionable remediations to reduce residual risk
+    
+    Present findings in a markdown table with columns:
+    | Threat | Impact | Likelihood | Severity | Existing Mitigations | Residual Risk | Proposed Remediations |
+    
+    Impact, Likelihood, Severity, and Residual Risk use values: High, Medium, or Low.
+    
+    Table formatting requirements:
+    - Use plain text in all cells - NO bullet points, line breaks, or markdown formatting within a cell
+    - Separate multiple items with semicolons
+    - Keep each cell concise and focused
+    
+    For Proposed Remediations:
+    - Write "N/A" if fully mitigated
+    - For partial mitigations, use semicolons to separate remaining steps
+    - For unmitigated threats, separate multiple steps with semicolons
+    
+    Example row:
+    | API endpoint flooding | High | High | High | Basic rate limiting | Medium | Implement adaptive rate limiting; add request queuing; deploy CDN |
+
+- text: "### Elevation of Privilege"
+
+- prompt: Identify, assess, and propose mitigations for Elevation of Privilege threats.
+  hidden_instructions: >-
+    Analyze potential Elevation of Privilege threats where users can gain unauthorized access levels.
+    
+    Consider these key areas:
+    - Authorization mechanisms
+    - Role management
+    - Permission boundaries
+    - Privilege escalation paths
+    - Administrative access
+    
+    For each identified threat:
+    1. Describe the specific escalation path and targeted privileges
+    2. Evaluate business impact (unauthorized access, system compromise, data breach) and likelihood (ease of compromise)
+    3. Assess impact, likelihood, and severity using these criteria:
+       - High: Easy escalation to admin/root access
+       - Medium: Limited privilege gain OR restricted scope
+       - Low: Minor permission bypass + minimal impact
+    4. Document existing security controls
+    5. Assess residual risk after existing mitigations / security controls are applied
+    6. Propose additional specific, actionable remediations to reduce residual risk
+    
+    Present findings in a markdown table with columns:
+    | Threat | Impact | Likelihood | Severity | Existing Mitigations | Residual Risk | Proposed Remediations |
+    
+    Impact, Likelihood, Severity, and Residual Risk use values: High, Medium, or Low.
+    
+    Table formatting requirements:
+    - Use plain text in all cells - NO bullet points, line breaks, or markdown formatting within a cell
+    - Separate multiple items with semicolons
+    - Keep each cell concise and focused
+    
+    For Proposed Remediations:
+    - Write "N/A" if fully mitigated
+    - For partial mitigations, use semicolons to separate remaining steps
+    - For unmitigated threats, separate multiple steps with semicolons
+    
+    Example row:
+    | Horizontal privilege escalation via IDOR | High | Medium | High | Basic access controls | Low | Implement role-based access control; add context-based authorization checks |
+

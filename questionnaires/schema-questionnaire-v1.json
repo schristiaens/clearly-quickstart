@@ -1,0 +1,522 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "Clearly AI Questionnaire v1",
+  "type": "object",
+  "required": ["metadata", "blocks"],
+  "properties": {
+    "metadata": {
+      "type": "object",
+      "required": ["title", "description"],
+      "properties": {
+        "title": { "type": "string" },
+        "description": { "type": "string" },
+        "general_instructions": { "type": "string" },
+        "template": { "type": "string" },
+        "special_export": { "type": "string" },
+        "focus_instructions": { "type": "string" },
+        "input_type": { 
+          "type": "string",
+          "enum": ["table", "string"],
+          "description": "Type of input this questionnaire expects"
+        },
+        "joined_tables_export": { "type": "boolean" },
+        "enable_compliance_analysis_export_style": { "type": "boolean" }
+      },
+      "additionalProperties": false
+    },
+
+    "blocks": {
+      "type": "array",
+      "items": { "$ref": "#/definitions/block" },
+      "minItems": 1
+    }
+  },
+
+  "definitions": {
+    "block": {
+      "type": "object",
+      "oneOf": [
+        { "$ref": "#/definitions/text_block" },
+        { "$ref": "#/definitions/question_block" },
+        { "$ref": "#/definitions/workflow_block" },
+        { "$ref": "#/definitions/asset_identification_block" },
+        { "$ref": "#/definitions/fanout_block" },
+        { "$ref": "#/definitions/table_generation_block" },
+        { "$ref": "#/definitions/summarize_block" },
+        { "$ref": "#/definitions/secrets_scan_block" },
+        { "$ref": "#/definitions/aggregate_risks_block" }
+      ]
+    },
+
+    "text_block": {
+      "type": "object",
+      "required": ["text"],
+      "properties": {
+        "text": { "type": "string" }
+      },
+      "additionalProperties": false
+    },
+
+    "question_block": {
+      "type": "object",
+      "required": ["prompt"],
+      "properties": {
+        "prompt": { "type": "string" },
+        "hidden_instructions": { "type": "string" },
+        "type": { "type": "string" },
+        "id": { "type": "string" },
+        "max_risk": {
+          "type": "number",
+          "description": "Optional maximum risk value used by risk aggregation blocks"
+        },
+        "tools": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "enum": ["search_knowledge_base"]
+          },
+          "uniqueItems": true,
+          "description": "List of tools available to the agent for answering this question"
+        },
+
+        "options": {
+          "type": "array",
+          "items": { "$ref": "#/definitions/option" },
+          "minItems": 1
+        },
+
+        "multi_options": {
+          "type": "array",
+          "items": { "$ref": "#/definitions/option" },
+          "minItems": 1
+        },
+        "additional_details": { "$ref": "#/definitions/additional_details" },
+        "assert_fuzzy": { "type": "string" },
+        "assert_any": {
+          "type": "array",
+          "items": { "type": "string" },
+          "minItems": 1
+        },
+        "assert_all": {
+          "type": "array",
+          "items": { "type": "string" },
+          "minItems": 1
+        },
+        "triage_column_name": {
+          "type": "string",
+          "description": "Column name for triage status table"
+        },
+        "answer_strategy": {
+          "type": "string",
+          "enum": ["gpt-5.2"],
+          "description": "Model strategy to use for answering this question"
+        }
+      },
+      "additionalProperties": false,
+
+      "allOf": [
+        {
+          "if": {
+            "required": ["options"]
+          },
+          "then": {
+            "not": {
+              "required": ["multi_options"]
+            }
+          }
+        },
+        {
+          "if": {
+            "required": ["multi_options"]
+          },
+          "then": {
+            "not": {
+              "required": ["options"]
+            }
+          }
+        }
+      ]
+    },
+
+    "additional_details": {
+      "type": "object",
+      "required": ["prompt", "hidden_instructions"],
+      "properties": { "prompt": { "type": "string" }, "hidden_instructions": { "type": "string" } },
+      "additionalProperties": false
+    },
+
+    "option": {
+      "type": "object",
+      "required": ["option"],
+      "properties": {
+        "option": { "type": "string" },
+        "risk": { "type": "number" },
+        "follow_ups": {
+          "type": "array",
+          "items": { "$ref": "#/definitions/question_block" }
+        }
+      },
+      "additionalProperties": false
+    },
+
+    "workflow_block": {
+      "type": "object",
+      "required": ["workflow", "next_step"],
+      "properties": {
+        "workflow": { "type": "string" },
+        "next_step": {
+          "type": "object",
+          "required": ["trigger", "questionnaire_name"],
+          "properties": {
+            "trigger": { "type": "string" },
+            "questionnaire_name": { "type": "string" }
+          },
+          "additionalProperties": false
+        }
+      },
+      "additionalProperties": false
+    },
+
+    "asset_identification_block": {
+      "type": "object",
+      "required": ["asset_identification"],
+      "properties": { "asset_identification": { "type": "string" } },
+      "additionalProperties": false
+    },
+
+
+    "column_definition": {
+      "type": "object",
+      "required": ["name", "type"],
+      "properties": {
+        "name": {
+          "type": "string",
+          "description": "Column name"
+        },
+        "type": {
+          "type": "string",
+          "enum": ["string", "number", "boolean", "enum", "date"],
+          "description": "Column data type"
+        },
+        "description": {
+          "type": "string",
+          "description": "Column description"
+        },
+        "values": {
+          "type": "array",
+          "items": { "type": "string" },
+          "description": "Enum values (required for enum type columns)"
+        }
+      },
+      "additionalProperties": false,
+      "if": {
+        "properties": { "type": { "const": "enum" } }
+      },
+      "then": {
+        "required": ["values"]
+      }
+    },
+
+    "row_definition": {
+      "type": "object",
+      "required": ["name"],
+      "properties": {
+        "name": {
+          "type": "string",
+          "description": "Row name"
+        },
+        "type": {
+          "type": "string",
+          "enum": ["string", "number", "boolean", "enum"],
+          "description": "Row data type (optional)"
+        },
+        "description": {
+          "type": "string",
+          "description": "Row description to help AI understand what to populate"
+        },
+        "values": {
+          "type": "array",
+          "items": { "type": "string" },
+          "description": "Enum values (required for enum type rows)"
+        }
+      },
+      "additionalProperties": false,
+      "if": {
+        "properties": { "type": { "const": "enum" } }
+      },
+      "then": {
+        "required": ["values"]
+      }
+    },
+
+    "table_definition": {
+      "type": "object",
+      "required": ["columns"],
+      "properties": {
+        "columns": {
+          "type": "array",
+          "items": { "$ref": "#/definitions/column_definition" },
+          "minItems": 1,
+          "description": "Column definitions for the table"
+        }
+      },
+      "additionalProperties": false
+    },
+
+    "fanout_mapping": {
+      "type": "object",
+      "required": ["key", "questionnaire"],
+      "properties": {
+        "key": {
+          "type": "string",
+          "description": "Value to match in the fanout column"
+        },
+        "questionnaire": {
+          "type": "array",
+          "items": { "$ref": "#/definitions/question_block" },
+          "minItems": 1,
+          "description": "Nested questionnaire blocks for this mapping"
+        }
+      },
+      "additionalProperties": false
+    },
+
+    "fanout_block": {
+      "type": "object",
+      "required": ["text", "fanout"],
+      "properties": {
+        "text": {
+          "type": "string",
+          "description": "Display text for the fanout section"
+        },
+        "hidden_instructions": {
+          "type": "string",
+          "description": "Hidden instructions for AI processing"
+        },
+        "id": {
+          "type": "string",
+          "description": "Unique identifier for this block"
+        },
+        "fanout": {
+          "type": "object",
+          "required": ["description", "table_definition", "fanout_column", "mappings"],
+          "properties": {
+            "description": {
+              "type": "string",
+              "description": "Description of the fanout operation"
+            },
+            "table_definition": {
+              "$ref": "#/definitions/table_definition",
+              "description": "Definition of the table structure"
+            },
+            "fanout_column": {
+              "type": "string", 
+              "description": "Column name to fanout on"
+            },
+            "value_definitions": {
+              "type": "object",
+              "additionalProperties": { "type": "string" },
+              "description": "Descriptions for enum values"
+            },
+            "baml_instructions": {
+              "type": "string",
+              "description": "Instructions for the BAML model"
+            },
+            "mappings": {
+              "type": "array",
+              "items": { "$ref": "#/definitions/fanout_mapping" },
+              "minItems": 1,
+              "description": "Fanout mappings from keys to questionnaires"
+            },
+            "default_questionnaire": {
+              "type": "array",
+              "items": { "$ref": "#/definitions/question_block" },
+              "description": "Fallback questionnaire for unmatched values"
+            }
+          },
+          "additionalProperties": false
+        }
+      },
+      "additionalProperties": false
+    },
+
+    "table_generation_config": {
+      "type": "object",
+      "required": ["title"],
+      "properties": {
+        "title": {
+          "type": "string",
+          "description": "Title of the generated table"
+        },
+        "rows": {
+          "type": "array",
+          "items": { "$ref": "#/definitions/row_definition" },
+          "minItems": 1,
+          "description": "Row definitions for the table (optional)"
+        },
+        "columns": {
+          "type": "array",
+          "items": { "$ref": "#/definitions/column_definition" },
+          "minItems": 1,
+          "description": "Column definitions for the table (optional)"
+        },
+        "baml_instructions": {
+          "type": "string",
+          "description": "Additional instructions for the BAML table generation function"
+        },
+        "followup_questionnaire_id": {
+          "type": "string",
+          "description": "ID of the followup questionnaire to run for each row of the table"
+        }
+      },
+      "additionalProperties": false
+    },
+
+    "table_generation_block": {
+      "type": "object",
+      "required": ["type", "text", "table_config"],
+      "properties": {
+        "type": {
+          "type": "string",
+          "const": "table_generation",
+          "description": "Block type identifier"
+        },
+        "id": {
+          "type": "string",
+          "description": "Unique identifier for this block"
+        },
+        "text": {
+          "type": "string",
+          "description": "The prompt text for table generation"
+        },
+        "hidden_instructions": {
+          "type": "string",
+          "description": "Hidden instructions for AI processing"
+        },
+        "tools": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "enum": ["search_knowledge_base"]
+          },
+          "uniqueItems": true,
+          "description": "List of tools available to the agent for table generation"
+        },
+        "table_config": {
+          "$ref": "#/definitions/table_generation_config",
+          "description": "Configuration for the table to be generated"
+        },
+        "answer_strategy": {
+          "type": "string",
+          "enum": ["gpt-5.2"],
+          "description": "Model strategy to use for generating this table"
+        }
+      },
+      "additionalProperties": false
+    },
+
+    "summarize_block": {
+      "type": "object",
+      "required": ["block_type", "text"],
+      "properties": {
+        "block_type": {
+          "type": "string",
+          "const": "summarize",
+          "description": "Block type identifier for summarize blocks"
+        },
+        "text": {
+          "type": "string",
+          "description": "The text prompt for the summary"
+        },
+        "hidden_instructions": {
+          "type": "string",
+          "description": "Hidden instructions for AI processing"
+        },
+        "id": {
+          "type": "string",
+          "description": "Unique identifier for this block"
+        },
+        "tools": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "enum": ["search_knowledge_base"]
+          },
+          "uniqueItems": true,
+          "description": "List of tools available to the agent for this summary"
+        }
+      },
+      "additionalProperties": false
+    },
+
+    "secrets_scan_block": {
+      "type": "object",
+      "required": ["block_type", "text", "default_risk_score"],
+      "properties": {
+        "block_type": {
+          "type": "string",
+          "const": "secrets_scan",
+          "description": "Block type identifier for secrets scan blocks"
+        },
+        "text": {
+          "type": "string",
+          "description": "The display text for the secrets scan block"
+        },
+        "id": {
+          "type": "string",
+          "description": "Unique identifier for this block"
+        },
+        "max_risk": {
+          "type": "number",
+          "description": "Maximum risk value for this block"
+        },
+        "hidden_instructions": {
+          "type": "string",
+          "description": "Instructions visible only to the AI agent"
+        },
+        "default_risk_score": {
+          "type": "integer",
+          "description": "Risk points assigned to each finding whose type is not listed in risk_scores"
+        },
+        "risk_scores": {
+          "type": "object",
+          "description": "Mapping of gitleaks RuleID to risk points (e.g. private-key: 10)",
+          "additionalProperties": {
+            "type": "integer"
+          }
+        }
+      },
+      "additionalProperties": false
+    },
+
+    "aggregate_risks_block": {
+      "type": "object",
+      "required": ["block_type", "text", "strategy"],
+      "properties": {
+        "block_type": {
+          "type": "string",
+          "const": "aggregate_risks",
+          "description": "Block type identifier for aggregate risk computation blocks"
+        },
+        "text": {
+          "type": "string",
+          "description": "Display text shown above the computed risk breakdown"
+        },
+        "strategy": {
+          "type": "string",
+          "enum": ["sum_as_percentage"],
+          "description": "Risk aggregation strategy to apply"
+        },
+        "hidden_instructions": {
+          "type": "string",
+          "description": "Optional description for editors; not surfaced to reviewers"
+        },
+        "id": {
+          "type": "string",
+          "description": "Unique identifier for this block"
+        }
+      },
+      "additionalProperties": false
+    }
+  }
+} 

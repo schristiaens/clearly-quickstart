@@ -1,0 +1,329 @@
+# Questionnaire Authoring: Block Reference
+#
+# This file demonstrates every block type and common options available when
+# authoring questionnaires. Use it as a reference for structure and fields.
+# Each section includes comments explaining how the block is used.
+#
+# Top-level structure: every questionnaire has "metadata" and "blocks".
+# Blocks are evaluated in order. At most one "summarize" block is allowed,
+# and it must be the last block. "aggregate_risks" blocks must appear before
+# the summarize block.
+
+metadata:
+  title: "Questionnaire Blocks Reference"
+  description: "Reference questionnaire demonstrating all authoring block types and options"
+  general_instructions: |
+    Optional instructions shown to the reviewer or used as context for the entire questionnaire.
+    You can provide guidance on how to use project documents, what to prioritize, etc.
+
+blocks:
+  # ---------------------------------------------------------------------------
+  # TEXT BLOCKS — Display-only content (headings, sections, instructions)
+  # ---------------------------------------------------------------------------
+  # Use the "text" key alone. The block is not answered; it appears as static
+  # content in the review (e.g. section headers, introductory text).
+
+  - text: "# Section Heading"
+  - text: "## Subsection"
+  - text: |
+      A longer paragraph of instructions or context that will be displayed
+      to the reviewer without requiring an answer.
+
+  # ---------------------------------------------------------------------------
+  # INFO / WARNING / ERROR — Styled display blocks
+  # ---------------------------------------------------------------------------
+  # Use the key "info", "warning", or "error" with the content as the value.
+  # Rendered with distinct styling to draw attention. Not answered.
+
+  - info: "This is informational text, e.g. a note about how to interpret the next questions."
+  - warning: "This is warning text. Use it for important caveats or prerequisites."
+  - error: "This is error text. Use it sparingly for critical notices."
+
+  # ---------------------------------------------------------------------------
+  # FREEFORM — Open-ended question (no fixed choices)
+  # ---------------------------------------------------------------------------
+  # Use "prompt" for the question. No "options" or "multi_options".
+  # The reviewer provides a free-text answer. Optional: hidden_instructions,
+  # tools, assert_fuzzy, additional_details.
+
+  - prompt: "Describe how the application handles authentication and session management."
+    hidden_instructions: |
+      Optional instructions for the answering engine (not shown to the end reviewer).
+      Use to focus the answer on specific aspects or sources.
+    # Optional: fuzzy assertion — the answer is evaluated against this criterion
+    assert_fuzzy: "The answer should describe at least one of: SSO, MFA, or token-based auth."
+
+  # ---------------------------------------------------------------------------
+  # SINGLE-SELECT — One choice from a list
+  # ---------------------------------------------------------------------------
+  # Use "prompt" plus "options". Each option has "option" (label) and optional
+  # "risk" (numeric weight for risk aggregation). 
+
+  - prompt: "Is sensitive data encrypted at rest?"
+    options:
+      - option: "Yes, all sensitive data"
+        risk: 0
+      - option: "Partially"
+        risk: 20
+      - option: "No"
+        risk: 50
+
+
+  # ---------------------------------------------------------------------------
+  # MULTI-SELECT — Multiple choices from a list
+  # ---------------------------------------------------------------------------
+  # Use "prompt" plus "multi_options". Same structure as options: option, risk. 
+  # The reviewer can select zero, one, or several options.
+
+  - prompt: "Which security certifications does the product or vendor have?"
+    multi_options:
+      - option: "SOC 2"
+        risk: 0
+      - option: "ISO 27001"
+        risk: 0
+      - option: "HIPAA"
+        risk: 0
+      - option: "PCI DSS"
+        risk: 0
+      - option: "None of the above"
+        risk: 30
+
+  # ---------------------------------------------------------------------------
+  # ASSERTIONS — Define compliant vs non-compliant answers
+  # ---------------------------------------------------------------------------
+  # Use with any question block (freeform, single_select, multi_select).
+  # assert_any: answer is compliant if it matches any of the listed values in a single-select question.
+  # assert_all: answer is compliant only if all listed values are satisfied in a multi-select question.
+  #   (used with multi_select when multiple options must be selected).
+  # assert_fuzzy: compliance is determined by a natural-language criterion
+  #   (e.g. "The answer must mention encryption or key management").
+  # This is the only recommended way to get [check] and [x] icons in the review UI.
+
+  - prompt: "Is there a formal access review process?"
+    options:
+      - option: "Yes, at least annually"
+        risk: 0
+      - option: "Yes, but ad hoc"
+        risk: 15
+      - option: "No"
+        risk: 40
+    assert_any:
+      - "Yes, at least annually"
+      - "Yes, but ad hoc"
+
+  - prompt: "Select all access controls that are implemented."
+    multi_options:
+      - option: "Role-based access control"
+      - option: "Multi-factor authentication"
+      - option: "Audit logging"
+    assert_all:
+      - "Role-based access control"
+      - "Multi-factor authentication"
+
+  - prompt: "Describe how secrets (API keys, passwords) are managed."
+    assert_fuzzy: "The answer should reference a secrets manager, vault, or secure storage; avoid plaintext in code or config."
+
+  # ---------------------------------------------------------------------------
+  # ADDITIONAL DETAILS — Follow-up freeform for select questions
+  # ---------------------------------------------------------------------------
+  # Use "additional_details" on a single-select or multi-select question.
+  # After the main choice(s), the reviewer is asked an extra freeform question
+  # (e.g. "If other, please explain"). The prompt and hidden_instructions
+  # guide what to collect.
+
+  - prompt: "What is the data classification of the data processed by this system?"
+    options:
+      - option: "Public"
+        risk: 0
+      - option: "Internal"
+        risk: 10
+      - option: "Confidential"
+        risk: 30
+      - option: "Restricted"
+        risk: 50
+    additional_details:
+      prompt: "List the specific data types and any safeguards in place."
+      hidden_instructions: "Focus on data types and retention; cite document sections if available."
+
+  # ---------------------------------------------------------------------------
+  # OPTIONAL FIELDS (any question block)
+  # ---------------------------------------------------------------------------
+  # id: stable identifier for the block (e.g. for exports or integrations).
+  #   required if used for exporting into a formatted template.
+  # max_risk: cap on risk value for this block when using aggregate_risks.
+  # triage_column_name: Only used for triage workflows. Column label for triage/summary tables.
+  - prompt: "Does the solution support single sign-on (SSO)?"
+    id: "sso_support"
+    max_risk: 15
+    triage_column_name: "SSO"
+    options:
+      - option: "Yes"
+        risk: 0
+      - option: "No"
+        risk: 15
+    assert_any: ["Yes"]
+
+  # ---------------------------------------------------------------------------
+  # WORKFLOW — Route to another questionnaire
+  # ---------------------------------------------------------------------------
+  # Use "workflow" (display text) and "next_step" with "trigger" and
+  # "questionnaire_name". Indicates that after this point, the next step
+  # in the workflow is to run the named questionnaire (e.g. for multi-stage
+  # assessments).
+
+  - workflow: "Proceed to detailed assessment"
+    next_step:
+      trigger: "Always"
+      questionnaire_name: "Detailed Security Assessment"
+
+  # ---------------------------------------------------------------------------
+  # TABLE GENERATION — AI-generated table from project context
+  # ---------------------------------------------------------------------------
+  # Use "type: table_generation" (or block_type: table_generation), "text"
+  # (the prompt), and "table_config". The engine generates a table whose
+  # structure is defined by table_config. Optional: hidden_instructions.
+
+  - type: table_generation
+    id: "data_inventory"
+    text: "Identify all data types processed by the system and their classification."
+    hidden_instructions: "Include only data types explicitly mentioned or clearly implied in the documentation."
+    table_config:
+      title: "Data Types Inventory"
+      # Predefine columns (optional). Omit or use empty lists to let the engine discover structure.
+      columns:
+        - name: "Data Type"
+          type: "string"
+          description: "Type of data (e.g. PII, financial, logs)"
+        - name: "Classification"
+          type: "enum"
+          values: ["Public", "Internal", "Confidential", "Restricted"]
+          description: "Data classification level"
+        - name: "Source"
+          type: "string"
+          description: "Where this data is documented"
+      # Predefine rows (optional). If omitted, rows are discovered from context.
+      # rows:
+      #   - name: "User profile"
+      #     description: "Name, email, preferences"
+      #   - name: "Transaction log"
+      #     description: "Payment and activity records"
+      baml_instructions: |
+        Optional instructions for the table-generation engine. Use to constrain
+        scope, format, or what counts as a row/column.
+      # Optional: run another questionnaire for each row (e.g. deep-dive per item)
+      # followup_questionnaire_id: "detailed-data-review"
+
+  # Example: fully dynamic table (engine discovers both rows and columns)
+  - type: table_generation
+    id: "findings_table"
+    text: "List all security or privacy findings from the documentation with severity and recommendation."
+    table_config:
+      title: "Findings"
+      rows: []
+      columns: []
+      baml_instructions: |
+        Discover both what to list (rows) and what attributes to capture (columns).
+        Typical columns: Finding, Severity, Affected Component, Recommendation.
+
+  # ---------------------------------------------------------------------------
+  # FANOUT — Generate a table, then run a sub-questionnaire per row (or per value)
+  # ---------------------------------------------------------------------------
+  # Use "text" (section heading) and "fanout". The engine first generates a
+  # table from "table_definition". For each distinct value in "fanout_column",
+  # the corresponding "mappings" entry selects a sub-questionnaire to run.
+  # Placeholders like {{Asset Name}} in prompts are replaced with row values.
+  # "default_questionnaire" is used for any value not listed in mappings.
+
+  - text: "## Asset-based assessment"
+    fanout:
+      description: "Identify assets and then run an assessment per asset type."
+      table_definition:
+        columns:
+          - name: "Asset Name"
+            type: "string"
+            description: "Name of the asset"
+          - name: "Type"
+            type: "enum"
+            values: ["Application", "Database", "API", "Integration"]
+            description: "Category of the asset"
+          - name: "Confidence"
+            type: "enum"
+            values: ["HIGH", "MEDIUM", "LOW"]
+            description: "Confidence in the identification"
+      fanout_column: "Type"
+      value_definitions:
+        Application: "Software application or service"
+        Database: "Data store or repository"
+        API: "Programmatic interface"
+        Integration: "External or internal integration point"
+      baml_instructions: |
+        Identify all significant assets from the project documentation.
+        Be exhaustive; include assets even if confidence is medium or low.
+      mappings:
+        - key: "Application"
+          questionnaire:
+            - prompt: "What authentication method does {{Asset Name}} use?"
+            - prompt: "What data does {{Asset Name}} process? List types and sensitivity."
+        - key: "Database"
+          questionnaire:
+            - prompt: "How is {{Asset Name}} backed up and retained?"
+            - prompt: "Is access to {{Asset Name}} encrypted and access-controlled?"
+        - key: "API"
+          questionnaire:
+            - prompt: "Describe the authorization model for {{Asset Name}}."
+      default_questionnaire:
+        - prompt: "Describe the security and privacy considerations for {{Asset Name}}."
+
+  # ---------------------------------------------------------------------------
+  # SECRETS SCAN — Automated scan for leaked secrets
+  # ---------------------------------------------------------------------------
+  # Use block_type: secrets_scan and "text" (display title). The system runs
+  # an automated secrets scanner (gitleaks) over project files and presents
+  # results in the review. No prompt is answered by the reviewer here; the
+  # block holds the scan output. Often followed by a summarize block to
+  # interpret results.
+  #
+  # Required: default_risk_score — points per finding for types not in risk_scores.
+  # Optional: max_risk — numeric cap; when set the block contributes to aggregate_risks.
+  # Optional: risk_scores — mapping of gitleaks RuleID to risk points.
+  #   Types not listed get default_risk_score.
+
+  - block_type: secrets_scan
+    id: "secrets_scan_block"
+    text: "Secrets scan results"
+    max_risk: 100
+    default_risk_score: 5
+    risk_scores:
+      private-key: 10
+      aws-access-key-id: 10
+      aws-secret-access-key: 10
+      generic-api-key: 5
+      password: 3
+
+  # ---------------------------------------------------------------------------
+  # AGGREGATE RISKS — Compute risk score from previous questions
+  # ---------------------------------------------------------------------------
+  # Use block_type: aggregate_risks, "text" (label for the score), and
+  # "strategy". Questions that have "options" with "risk" values (and
+  # optional "max_risk" on the block) contribute to the aggregate. Only one
+  # strategy is supported: sum_as_percentage. This block must appear before
+  # the summarize block.
+
+  - block_type: aggregate_risks
+    text: "Overall risk score"
+    strategy: sum_as_percentage
+
+  # ---------------------------------------------------------------------------
+  # SUMMARIZE — Synthesis and recommendations (must be last)
+  # ---------------------------------------------------------------------------
+  # Use block_type: summarize and "text" (prompt for the summary). The engine
+  # synthesizes answers from all previous blocks and produces a final summary.
+  # Optional: hidden_instructions. Exactly
+  # one summarize block per questionnaire, and it must be the last block.
+
+  - block_type: summarize
+    text: "Based on the assessment, provide overall risk level, key findings, and recommended next steps."
+    hidden_instructions: |
+      Synthesize findings from previous questions. Include a risk level (e.g. P0–P3 or High/Medium/Low)
+      and actionable recommendations. Reference the aggregate risk score if present.
+    tools: ["search_knowledge_base"]
