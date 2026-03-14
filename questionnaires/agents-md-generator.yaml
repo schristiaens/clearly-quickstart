@@ -1,0 +1,445 @@
+metadata:
+  title: "AGENTS.md Generator for Secure Vibe Coding"
+  description: >-
+    Generates a tailored AGENTS.md file that enforces security guardrails for
+    AI coding agents (Claude Code, Cursor, Copilot, etc.) working in this codebase.
+    Analyzes tech stack, trust model, secrets handling, auth, and security controls
+    to produce project-specific behavioral rules for AI agents.
+  general_instructions: >-
+    <Goal>
+      Your goal is to produce a comprehensive, project-specific AGENTS.md file that
+      AI coding agents can follow to write secure code. The output must be actionable,
+      specific to this codebase, and cover all security-relevant behaviors.
+    </Goal>
+
+    <Approach>
+      Search all project documents, code, configuration files, CI/CD definitions,
+      infrastructure-as-code, and dependency files. Prefer explicit evidence over
+      inference. Where documentation is missing, note it as a gap in the AGENTS.md.
+    </Approach>
+
+    <Output Philosophy>
+      Every rule in the generated AGENTS.md must be concrete and testable.
+      Avoid vague rules like "write secure code". Prefer specific rules like
+      "Never interpolate user input into SQL strings — use parameterized queries only".
+    </Output Philosophy>
+
+blocks:
+  # ─────────────────────────────────────────────
+  # SECTION 1: PROJECT CONTEXT
+  # ─────────────────────────────────────────────
+  - text: "## 1. Project Context"
+
+  - prompt: "Describe the system: its purpose, primary users, and the business context it operates in."
+    hidden_instructions: |
+      Search README, architecture docs, design documents, and any onboarding materials.
+      Summarize in 3-5 sentences covering: what the system does, who uses it, and what
+      business function it serves. Note the deployment environment (cloud provider, on-prem, SaaS).
+
+  - prompt: "What programming languages and major frameworks are used in this project?"
+    multi_options:
+      - option: "Python"
+      - option: "TypeScript / JavaScript"
+      - option: "Go"
+      - option: "Java / Kotlin"
+      - option: "C# / .NET"
+      - option: "Rust"
+      - option: "Ruby"
+      - option: "PHP"
+      - option: "React / Next.js"
+      - option: "Vue / Nuxt"
+      - option: "Express / Fastify / Hono"
+      - option: "FastAPI / Django / Flask"
+      - option: "Spring Boot"
+      - option: "Other"
+    hidden_instructions: |
+      Check package.json, pyproject.toml, go.mod, Cargo.toml, pom.xml, Gemfile,
+      composer.json, and any Dockerfile or CI workflow files for language and framework signals.
+
+  - prompt: "What runtime and deployment environments does this project run in?"
+    multi_options:
+      - option: "AWS Lambda / serverless"
+      - option: "AWS ECS / Fargate"
+      - option: "AWS EC2"
+      - option: "Google Cloud Run / GKE"
+      - option: "Azure App Service / AKS"
+      - option: "Kubernetes (self-managed)"
+      - option: "Docker Compose"
+      - option: "Bare metal / VM"
+      - option: "Cloudflare Workers"
+      - option: "Vercel / Netlify"
+      - option: "Browser (frontend only)"
+      - option: "Mobile (iOS / Android)"
+      - option: "Other"
+
+  # ─────────────────────────────────────────────
+  # SECTION 2: DATA SENSITIVITY & TRUST MODEL
+  # ─────────────────────────────────────────────
+  - text: "## 2. Data Sensitivity & Trust Model"
+
+  - prompt: "What categories of sensitive data does this system process, store, or transmit?"
+    multi_options:
+      - option: "Personal Identifiable Information (PII) — names, emails, addresses"
+      - option: "Authentication credentials — passwords, tokens, API keys"
+      - option: "Financial data — payment cards, bank accounts, transactions"
+      - option: "Health / medical data (PHI)"
+      - option: "Government / national ID data"
+      - option: "Biometric data"
+      - option: "Intellectual property / trade secrets"
+      - option: "Children's data (COPPA scope)"
+      - option: "No sensitive personal data"
+    hidden_instructions: |
+      Search for data models, database schemas, API request/response examples, privacy policies,
+      compliance documentation, and any mention of GDPR, HIPAA, PCI DSS, or CCPA.
+
+  - prompt: "Describe the trust boundaries and data flow: where does untrusted input enter the system, and what is the path to sensitive data or privileged operations?"
+    hidden_instructions: |
+      Look for API gateway configs, load balancer rules, network diagrams, service mesh configs,
+      and code handling HTTP requests. Trace the path from external input (HTTP, queue, file upload)
+      to database writes or privileged calls. Identify trust zones explicitly.
+    assert_fuzzy: "The answer must identify at least one external entry point and describe how it reaches internal data or services."
+
+  - prompt: "What external services and third-party integrations does this system depend on?"
+    hidden_instructions: |
+      Check for API client code, SDK imports, environment variables referencing external services,
+      webhook handlers, OAuth flows, and any mention of third-party vendors. List service name,
+      purpose, and what data is shared with it.
+
+  # ─────────────────────────────────────────────
+  # SECTION 3: SECRETS & CREDENTIAL MANAGEMENT
+  # ─────────────────────────────────────────────
+  - text: "## 3. Secrets & Credential Management"
+
+  - prompt: "How are secrets, API keys, and credentials managed in this project?"
+    options:
+      - option: "Secrets manager (AWS Secrets Manager, HashiCorp Vault, GCP Secret Manager)"
+      - option: "Environment variables injected at runtime (not stored in repo)"
+      - option: "CI/CD secrets (GitHub Actions secrets, GitLab CI variables)"
+      - option: ".env files (excluded from version control)"
+      - option: "Hardcoded in config files (tracked in repo)"
+      - option: "Mixed approach"
+      - option: "Unknown / not documented"
+    assert_any:
+      - "Secrets manager (AWS Secrets Manager, HashiCorp Vault, GCP Secret Manager)"
+      - "Environment variables injected at runtime (not stored in repo)"
+      - "CI/CD secrets (GitHub Actions secrets, GitLab CI variables)"
+    hidden_instructions: |
+      Search for .env.example files, CI/CD workflow files (.github/workflows, .gitlab-ci.yml),
+      secrets manager SDK usage, and any references to environment variable loading.
+      Note the pattern used and whether .gitignore excludes secrets files.
+
+  - prompt: "What secret scanning or pre-commit hooks are in place to prevent credential leaks?"
+    multi_options:
+      - option: "gitleaks"
+      - option: "truffleHog"
+      - option: "detect-secrets (Yelp)"
+      - option: "GitHub secret scanning (push protection)"
+      - option: "GitLab secret detection"
+      - option: "Pre-commit hook for secrets"
+      - option: "None currently configured"
+    hidden_instructions: |
+      Check .pre-commit-config.yaml, .gitleaks.toml, CI workflow files, and GitHub/GitLab
+      repository settings documentation. Also check package.json scripts and Makefile targets.
+
+  - text: "### Automated Secrets Scan"
+  - info: "The following block runs an automated secrets scan (gitleaks) against all project files."
+
+  - block_type: secrets_scan
+    id: "secrets_scan"
+    text: "Automated secrets scan results"
+    max_risk: 100
+    default_risk_score: 5
+    risk_scores:
+      private-key: 10
+      aws-access-key-id: 10
+      aws-secret-access-key: 10
+      gcp-service-account: 10
+      azure-storage-account-key: 10
+      generic-api-key: 7
+      github-pat: 8
+      password: 3
+      jwt: 5
+      sendgrid-api-key: 6
+      stripe-api-key: 8
+
+  # ─────────────────────────────────────────────
+  # SECTION 4: AUTHENTICATION & AUTHORIZATION
+  # ─────────────────────────────────────────────
+  - text: "## 4. Authentication & Authorization"
+
+  - prompt: "What authentication mechanism does this system use?"
+    options:
+      - option: "OAuth 2.0 / OIDC (e.g., Auth0, Okta, Cognito)"
+      - option: "SAML SSO"
+      - option: "JWT (self-issued)"
+      - option: "Session-based (server-side sessions)"
+      - option: "API key / token"
+      - option: "mTLS (mutual TLS)"
+      - option: "Basic authentication"
+      - option: "No authentication (public)"
+      - option: "Multiple / depends on context"
+    hidden_instructions: |
+      Search for auth middleware, login handlers, token validation code, passport.js config,
+      spring-security config, Django auth settings, or any JWT library usage.
+
+  - prompt: "Is multi-factor authentication (MFA) enforced for privileged or admin access?"
+    options:
+      - option: "Yes, MFA required for all privileged access"
+      - option: "Yes, MFA available but not enforced"
+      - option: "No MFA"
+      - option: "Not applicable (service-to-service only)"
+    assert_any:
+      - "Yes, MFA required for all privileged access"
+
+  - prompt: "What authorization model is used to control access to resources and operations?"
+    multi_options:
+      - option: "Role-Based Access Control (RBAC)"
+      - option: "Attribute-Based Access Control (ABAC)"
+      - option: "Policy-based (OPA, Cedar, Casbin)"
+      - option: "Ownership-based (users only access their own data)"
+      - option: "ACL (Access Control Lists)"
+      - option: "No formal authorization model"
+    hidden_instructions: |
+      Look for role definitions, permission checks in route handlers, middleware that checks
+      user roles/scopes, database row-level security policies, and any IAM policy documents.
+    assert_any:
+      - "Role-Based Access Control (RBAC)"
+      - "Attribute-Based Access Control (ABAC)"
+      - "Policy-based (OPA, Cedar, Casbin)"
+      - "Ownership-based (users only access their own data)"
+
+  # ─────────────────────────────────────────────
+  # SECTION 5: INPUT VALIDATION & OUTPUT ENCODING
+  # ─────────────────────────────────────────────
+  - text: "## 5. Input Validation & Output Encoding"
+
+  - prompt: "How is user input validated and sanitized before use in database queries, shell commands, or rendered output?"
+    hidden_instructions: |
+      Look for validation libraries (Zod, Joi, Pydantic, class-validator, cerberus),
+      ORM usage (Prisma, SQLAlchemy, Hibernate), parameterized query patterns, and
+      any HTML escaping or templating engine usage. Note if raw string interpolation
+      into SQL or shell commands exists anywhere.
+    assert_fuzzy: "The answer must mention at least one validation library, ORM, or parameterized query approach."
+
+  - prompt: "What protections are in place against injection attacks (SQL injection, command injection, XSS, SSRF)?"
+    multi_options:
+      - option: "ORM / query builder (no raw SQL)"
+      - option: "Parameterized queries / prepared statements"
+      - option: "Content Security Policy (CSP) headers"
+      - option: "Output encoding / template auto-escaping"
+      - option: "Input allowlist validation"
+      - option: "SSRF protection (URL allowlist, metadata endpoint blocking)"
+      - option: "Shell command escaping / avoid shell=True"
+      - option: "None / not documented"
+
+  - prompt: "What HTTP security headers are configured? (HSTS, CSP, X-Frame-Options, etc.)"
+    hidden_instructions: |
+      Search for middleware that sets HTTP headers: helmet.js, Django SECURE_* settings,
+      Spring Security headers config, nginx.conf, Cloudflare rules, or CDN header configs.
+      List which headers are set and their values if documented.
+
+  # ─────────────────────────────────────────────
+  # SECTION 6: CRYPTOGRAPHY & DATA PROTECTION
+  # ─────────────────────────────────────────────
+  - text: "## 6. Cryptography & Data Protection"
+
+  - prompt: "What cryptographic standards and libraries are used for data encryption in transit and at rest?"
+    hidden_instructions: |
+      Look for TLS configuration (cipher suites, minimum version), encryption library usage
+      (cryptography, bcrypt, argon2, nacl, AWS KMS calls), database encryption settings,
+      and any file/disk encryption configuration. Check for use of deprecated algorithms
+      (MD5, SHA1, DES, RC4, ECB mode).
+    assert_fuzzy: "The answer must specify that data in transit uses TLS and mention at least one approach for data at rest or password hashing."
+
+  - prompt: "How are passwords hashed and stored?"
+    options:
+      - option: "bcrypt"
+      - option: "argon2"
+      - option: "scrypt"
+      - option: "PBKDF2"
+      - option: "SHA-256 / SHA-512 (not recommended for passwords)"
+      - option: "MD5 or SHA-1 (insecure)"
+      - option: "Delegated to identity provider (not stored locally)"
+      - option: "Not applicable (no user passwords)"
+    assert_any:
+      - "bcrypt"
+      - "argon2"
+      - "scrypt"
+      - "PBKDF2"
+      - "Delegated to identity provider (not stored locally)"
+      - "Not applicable (no user passwords)"
+
+  # ─────────────────────────────────────────────
+  # SECTION 7: CI/CD & SECURITY TOOLING
+  # ─────────────────────────────────────────────
+  - text: "## 7. CI/CD & Security Tooling"
+
+  - prompt: "What automated security checks run in the CI/CD pipeline?"
+    multi_options:
+      - option: "SAST (static analysis) — Semgrep, SonarQube, CodeQL, Bandit"
+      - option: "Dependency scanning — Dependabot, Snyk, OWASP Dependency Check"
+      - option: "Container scanning — Trivy, Grype, Snyk Container"
+      - option: "DAST (dynamic analysis) — OWASP ZAP, Burp Suite"
+      - option: "Secret scanning — gitleaks, truffleHog, GitHub secret scanning"
+      - option: "License compliance scanning"
+      - option: "IaC scanning — tfsec, Checkov, kics"
+      - option: "No automated security checks"
+    hidden_instructions: |
+      Check .github/workflows/*.yml, .gitlab-ci.yml, Jenkinsfile, and any Makefile/scripts
+      for security tool invocations. Also look for pre-commit hooks and branch protection rules.
+
+  - prompt: "Are there branch protection rules or required reviews for merging to main/production branches?"
+    options:
+      - option: "Yes, required reviews + status checks before merge"
+      - option: "Yes, required reviews only"
+      - option: "Yes, required status checks only"
+      - option: "No branch protection"
+    assert_any:
+      - "Yes, required reviews + status checks before merge"
+      - "Yes, required reviews only"
+
+  # ─────────────────────────────────────────────
+  # SECTION 8: KNOWN RISKS & FORBIDDEN PATTERNS
+  # ─────────────────────────────────────────────
+  - text: "## 8. Known Risks & Forbidden Patterns"
+
+  - prompt: "Are there any known security vulnerabilities, open CVEs, or documented security technical debt in this codebase?"
+    hidden_instructions: |
+      Search for FIXME/TODO/HACK/SECURITY comments in code, open security issues in issue trackers
+      (if linked), security advisories in dependency lock files, and any threat model or risk
+      register documents. Also check if dependabot/snyk has flagged any high/critical CVEs.
+
+  - prompt: "What code patterns, libraries, or approaches are explicitly forbidden or deprecated in this codebase?"
+    hidden_instructions: |
+      Look for CONTRIBUTING.md, ARCHITECTURE.md, ADR (Architecture Decision Records) documents,
+      linter configs (eslint, pylint, rubocop) with custom rules, and any internal security
+      standards documents. Note patterns explicitly called out as forbidden.
+
+  - type: table_generation
+    id: "forbidden_patterns_table"
+    text: "Generate a table of forbidden or high-risk code patterns identified in this codebase."
+    hidden_instructions: >-
+      Extract patterns that are explicitly documented as forbidden, deprecated, or high-risk.
+      Include patterns found in linter configs, CONTRIBUTING docs, security standards, or
+      code comments (FIXME SECURITY, etc.). Focus on patterns an AI agent might accidentally use.
+    table_config:
+      title: "Forbidden & High-Risk Patterns"
+      columns:
+        - name: "Pattern"
+          type: "string"
+          description: "The forbidden code pattern or approach"
+        - name: "Language / Context"
+          type: "string"
+          description: "Where this applies (e.g., Python, SQL, all)"
+        - name: "Risk"
+          type: "enum"
+          values: ["Critical", "High", "Medium"]
+          description: "Severity if the pattern is used"
+        - name: "Safe Alternative"
+          type: "string"
+          description: "What to use instead"
+        - name: "Source"
+          type: "string"
+          description: "Where this rule is documented"
+      baml_instructions: >-
+        Only include patterns with explicit evidence in project documents or code.
+        Typical examples: raw SQL string interpolation, eval(), shell=True, MD5 for passwords,
+        hardcoded credentials, disabled TLS verification. Do not speculate.
+
+  # ─────────────────────────────────────────────
+  # SECTION 9: GENERATE AGENTS.MD
+  # ─────────────────────────────────────────────
+  - text: "## 9. Generated AGENTS.md"
+
+  - block_type: summarize
+    id: "agents_md_output"
+    text: >-
+      Generate a complete, production-ready AGENTS.md file for this codebase that AI coding
+      agents must follow to write secure code.
+    hidden_instructions: |
+      # AGENTS.md Generation Instructions
+
+      You are generating the actual content of an AGENTS.md file. This file will be placed
+      in the root of the repository and read by AI coding agents (Claude Code, Cursor, GitHub
+      Copilot, etc.) before they write or modify any code.
+
+      ## Output Format
+
+      Output the AGENTS.md content as a complete Markdown document starting with:
+      ```
+      # AGENTS.md — Secure Coding Rules for AI Agents
+      ```
+
+      ## Required Sections
+
+      Generate ALL of the following sections, populated with project-specific details
+      from the assessment above. Do not use placeholder text — every rule must be
+      grounded in what was actually found in this codebase.
+
+      ### 1. Project Overview (2-3 sentences)
+      What this system does, who uses it, what makes it security-sensitive.
+
+      ### 2. Absolute Rules (NEVER do these)
+      A numbered list of hard prohibitions specific to this codebase.
+      Examples grounded in the findings:
+      - Secret handling: "NEVER hardcode credentials, API keys, or tokens. Use [specific secrets manager found]."
+      - Injection: "NEVER interpolate user input into SQL strings. Use [specific ORM/library found] parameterized queries."
+      - Crypto: "NEVER use MD5 or SHA1 for cryptographic purposes. Use [specific library found]."
+      - Forbidden patterns from Section 8.
+      Minimum 8 rules. Each rule must name the specific safe alternative for this codebase.
+
+      ### 3. Required Patterns (ALWAYS do these)
+      A numbered list of mandatory practices.
+      Examples grounded in findings:
+      - "ALWAYS validate all external input with [specific library found] before use."
+      - "ALWAYS use [specific auth middleware] for protected routes — never roll your own auth."
+      - "ALWAYS run [specific test command] before marking a task complete."
+      Minimum 6 rules.
+
+      ### 4. Data Handling Rules
+      Specific rules for each sensitive data category found in Section 2.
+      If PII is processed: rules for how AI agents must handle PII in code, logs, and tests.
+      If financial data: rules for handling payment data.
+      If credentials: rules for credential handling.
+
+      ### 5. Security Boundaries
+      Describe the trust model in one paragraph, then list:
+      - Entry points where untrusted input arrives (from Section 2)
+      - What AI agents must check before writing code that touches these entry points
+      - What operations require explicit security review before implementation
+
+      ### 6. Secrets & Credentials
+      - Where to find secrets for local development (e.g., ".env.example — copy to .env, never commit .env")
+      - What environment variables are in use (list names only, never values)
+      - The secrets scanning tool in place and how to run it locally
+
+      ### 7. Authentication & Authorization
+      - The auth mechanism in use and which library/service handles it
+      - Where authorization checks are enforced (middleware, service layer, etc.)
+      - Rules for AI agents adding new endpoints: what auth annotations/middleware to include
+
+      ### 8. Dependency & Supply Chain Rules
+      - How to add new dependencies (approval process, security review requirements)
+      - Which dependency scanner is in use and how to run it
+      - Any banned or restricted packages
+
+      ### 9. CI/CD Security Gates
+      - Which security checks must pass before merging
+      - How to run security checks locally before pushing
+      - What to do if a security gate fails
+
+      ### 10. Security Gaps & Known Risks
+      List any security gaps identified in the assessment that AI agents should be
+      aware of and avoid making worse. Frame these as "Known Risk: [description] —
+      do not add new code that relies on this pattern."
+
+      ## Tone & Style
+      - Direct and imperative ("NEVER", "ALWAYS", "MUST", "DO NOT")
+      - Specific: name actual tools, libraries, and patterns found in this codebase
+      - Concise: each rule is one sentence with a clear prohibition and safe alternative
+      - No marketing language or vague advice
+
+      ## Quality Bar
+      A good AGENTS.md from this tool should be specific enough that if you removed
+      the project name, a reader could still identify the tech stack, data sensitivity,
+      and security posture from the rules alone.
