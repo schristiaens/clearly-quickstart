@@ -23,9 +23,8 @@ Evaluation criteria:
 * ambitiousness of mission
 * ability to accomplish mission  
 * quality of questionnaire design  
-* utilization of clearly AI system capabilities  
-* "so what" creativity (are they able to accomplish the mission)  
-* Points for using workflows, Clearly API, etc.
+* utilization of Clearly AI system capabilities  
+* Extra points for using workflows, Clearly API, etc.
 
 ## Onboarding
 1. Sign up here: https://nebfog.clearly-app.com/
