@@ -31,11 +31,14 @@ Evaluation criteria:
 2. Create a questionnaire using this repo and upload in Settings
 3. Add any integrations & set up any workflows (hidden URL: https://nebfog.clearly-app.com/workflows)
 
-## Notes
-Because we are an enterprise product, you are all in the same enterprise org, so you will be able to see each other's questionnaires. Please operate on the honor system and don't look at other people's work!!
+## Important Notes
+Because we are an enterprise product, you are all in the same enterprise org:
+1. You will be able to see each other's questionnaires. Please operate on the honor system and don't look at other people's work!!
+2. If you add integrations via Personal Access Token or Org-wide OAuth you WILL expose your data to everyone else on the platform
+3. Other people can see the source docs you upload to evaluate your questionnaire - don't throw anything sensitive in!
 
 
-## What is Clearly AI?
+# What is Clearly AI?
 
 Clearly AI is a SaaS for **security teams** who need to complete security (and related) reviews faster.
 
